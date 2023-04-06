@@ -7,16 +7,32 @@ DROP PROCEDURE IF EXISTS ComputeAverageWeightedScoreForUsers;
 DELIMITER $$
 CREATE PROCEDURE ComputeAverageWeightedScoreForUsers ()
 BEGIN
-    DECLARE sum_weighted_score FLOAT DEFAULT 0;
-    DECLARE sum_weights FLOAT DEFAULT 0;
-
-    SELECT SUM(corrections.score * projects.weight), SUM(projects.weight)
-    INTO sum_weighted_score, sum_weights
-    FROM corrections
-    INNER JOIN projects ON corrections.project_id = projects.id;
+    ALTER TABLE users ADD total_weighted_score INT NOT NULL;
+    ALTER TABLE users ADD total_weight INT NOT NULL;
 
     UPDATE users
-    SET average_score = IF(sum_weights = 0, 0, sum_weighted_score / sum_weights);
+        SET total_weighted_score = (
+            SELECT SUM(corrections.score * projects.weight)
+            FROM corrections
+                INNER JOIN projects
+                    ON corrections.project_id = projects.id
+            WHERE corrections.user_id = users.id
+            );
 
+    UPDATE users
+        SET total_weight = (
+            SELECT SUM(projects.weight)
+                FROM corrections
+                    INNER JOIN projects
+                        ON corrections.project_id = projects.id
+                WHERE corrections.user_id = users.id
+            );
+
+    UPDATE users
+        SET users.average_score = IF(users.total_weight = 0, 0, users.total_weighted_score / users.total_weight);
+    ALTER TABLE users
+        DROP COLUMN total_weighted_score;
+    ALTER TABLE users
+        DROP COLUMN total_weight;
 END $$
 DELIMITER ;
