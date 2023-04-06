@@ -10,7 +10,7 @@ BEGIN
     UPDATE users SET average_score = (
         SELECT AVG(score)
         FROM corrections
-        WHERE user_id = users.id
+        WHERE user_id = user_id
     )
     WHERE id = user_id;
 END $$
