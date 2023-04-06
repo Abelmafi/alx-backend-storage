@@ -9,5 +9,5 @@
 SELECT band_name,
     CASE WHEN split IS NOT NULL THEN (split - formed) ELSE (2020 - formed) END AS lifespan
 FROM metal_bands
-WHERE style LIKE '%Glam rock%'
+WHERE FIND_IN_SET('Glam rock', IFNULL(style, "")) > 0
 ORDER BY lifespan DESC;
