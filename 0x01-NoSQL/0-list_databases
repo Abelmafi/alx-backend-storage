@@ -1,0 +1,4 @@
+// Switch to the admin database
+use admin
+// List all databases
+show dbs
