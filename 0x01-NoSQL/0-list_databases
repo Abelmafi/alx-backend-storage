@@ -1,4 +1,3 @@
 // Switch to the admin database List all databases
-mongo
 use admin
 show dbs
