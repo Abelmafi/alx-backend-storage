@@ -13,6 +13,6 @@ if __name__ == '__main__':
     methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
     for method in methods:
         count = ngnix_collection.count_documents({"method": method})
-        print(f"\t{count} {method} requests")
+        print(f"\tmethod {method}: {count}")
     count = ngnix_collection.count_documents({"method": "GET", "path": "/status"})
     print(f"{count} status check")
