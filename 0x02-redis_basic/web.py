@@ -7,8 +7,28 @@ import time
 
 redis_client = redis.Redis()
 
+
+def cache(expiration_time=10):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Generate a Redis key based on the function name and its arguments
+            key = f"{func.__name__}:{args}:{kwargs}"
+            # Check if the result is already cached
+            cached_result = redis_client.get(key)
+            if cached_result is not None:
+                return cached_result.decode('utf-8')
+            # Call the function and cache its result
+            result = func(*args, **kwargs)
+            redis_client.setex(key, expiration_time, result)
+            return result
+        return wrapper
+    return decorator
+
+
+@cache()
 def get_page(url: str) -> str:
-    """ Check if the URL is already cached """
+    # Check if the URL is already cached
     cached_html = redis_client.get(url)
     if cached_html is not None:
         # Increment the access count for this URL
