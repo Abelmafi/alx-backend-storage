@@ -1,7 +1,9 @@
 #!/usr/bin/python3
+"""..."""
 import redis
 import uuid
 from typing import Union
+
 
 class Cache:
     """..."""
