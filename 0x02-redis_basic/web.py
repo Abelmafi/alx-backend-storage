@@ -6,31 +6,40 @@ import requests
 from functools import wraps
 from typing import Callable
 
-
 redis_store = redis.Redis()
-'''The module-level Redis instance.
-'''
 
-
-def data_cacher(method: Callable) -> Callable:
-    '''Caches the output of fetched data.
+def url_tracker(method: Callable) -> Callable:
+    '''Tracks how many times a URL was accessed.
     '''
     @wraps(method)
     def invoker(url) -> str:
-        '''The wrapper function for caching the output.
+        '''The wrapper function for tracking the URL.
         '''
         redis_store.incr(f'count:{url}')
-        result = redis_store.get(f'result:{url}')
-        if result:
-            return result.decode('utf-8')
-        result = method(url)
-        redis_store.set(f'count:{url}', 0)
-        redis_store.setex(f'result:{url}', 10, result)
-        return result
+        return method(url)
     return invoker
 
 
-@data_cacher
+def data_cacher(expires=10):
+    '''Caches the output of fetched data with expiration time.
+    '''
+    def cache_decorator(method):
+        @wraps(method)
+        def invoker(url) -> str:
+            '''The wrapper function for caching the output.
+            '''
+            result = redis_store.get(f'result:{url}')
+            if result:
+                return result.decode('utf-8')
+            result = method(url)
+            redis_store.setex(f'result:{url}', expires, result)
+            return result
+        return invoker
+    return cache_decorator
+
+
+@url_tracker
+@data_cacher(expires=10)
 def get_page(url: str) -> str:
     '''Returns the content of a URL after caching the request's response,
     and tracking the request.
