@@ -18,19 +18,13 @@ def get_page(url: str) -> str:
     count_key = f'count:{url}'
     result_key = f'result:{url}'
 
-    # Increment the count for the URL.
     redis_store.incr(count_key)
-
-    # Check if the result is already cached.
     result = redis_store.get(result_key)
 
     if result:
         return result.decode('utf-8')
     else:
-        # If the result is not cached, make an HTTP request.
         response = requests.get(url)
-
-        # Cache the result with an expiration time of 10 seconds.
         redis_store.setex(result_key, 10, response.text)
 
         return response.text
