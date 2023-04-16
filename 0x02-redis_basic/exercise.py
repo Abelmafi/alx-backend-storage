@@ -1,21 +1,37 @@
 #!/usr/bin/env python3
-"""redis basics"""
+"""Cache module"""
+
 import redis
 import uuid
-from typing import Union
-
+from typing import Union, Callable, Optional
 
 class Cache:
-    """uses the Redis client from the redis package,
-    generates a random key using the uuid module,
-    and stores the data in Redis using the set method."""
+    """Cache class"""
+
     def __init__(self):
+        """Constructor method"""
         self._redis = redis.Redis()
         self._redis.flushdb()
 
     def store(self, data: Union[str, bytes, int, float]) -> str:
-        """The return type of the store method is a string,
-        which is the key used to store the data in Redis."""
+        """Store a data string in Redis"""
         key = str(uuid.uuid4())
         self._redis.set(key, data)
         return key
+
+    def get(self, key: str, fn: Optional[Callable] = None) -> Union[str, bytes, int, float]:
+        """Get data from Redis by key"""
+        data = self._redis.get(key)
+        if data is None:
+            return data
+        if fn is not None:
+            data = fn(data)
+        return data
+
+    def get_str(self, key: str) -> Union[str, None]:
+        """Get string data from Redis by key"""
+        return self.get(key, fn=lambda x: x.decode())
+
+    def get_int(self, key: str) -> Union[int, None]:
+        """Get integer data from Redis by key"""
+        return self.get(key, fn=lambda x: int(x.decode()))
