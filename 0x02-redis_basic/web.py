@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 '''A module with tools for request caching and tracking.
 '''
-import requests
+import functools
 import redis
-import time
+import requests
+
 
 redis_client = redis.Redis()
 
@@ -45,3 +46,4 @@ def get_page(url: str) -> str:
     redis_client.set(f"count:{url}", 1)
 
     return response.content.decode('utf-8')
+
