@@ -1,12 +1,54 @@
-#!/usr/bin/env python3
-'''A module with tools for request caching and tracking.
-'''
 import redis
 import requests
 from functools import wraps
 from typing import Callable
 
+
 redis_store = redis.Redis()
+'''The module-level Redis instance.
+'''
+
+
+def get_page(url: str) -> str:
+    '''Returns the content of a URL after caching the request's response,
+    and tracking the request.
+    '''
+    count_key = f'count:{url}'
+    result_key = f'result:{url}'
+
+    # Increment the count for the URL.
+    redis_store.incr(count_key)
+
+    # Check if the result is already cached.
+    result = redis_store.get(result_key)
+
+    if result:
+        return result.decode('utf-8')
+    else:
+        # If the result is not cached, make an HTTP request.
+        response = requests.get(url)
+
+        # Cache the result with an expiration time of 10 seconds.
+        redis_store.setex(result_key, 10, response.text)
+
+        return response.text
+
+
+def data_cacher(method: Callable) -> Callable:
+    '''Caches the output of fetched data.
+    '''
+    @wraps(method)
+    def invoker(url) -> str:
+        '''The wrapper function for caching the output.
+        '''
+        result = redis_store.get(f'result:{url}')
+        if result:
+            return result.decode('utf-8')
+        result = method(url)
+        redis_store.setex(f'result:{url}', 10, result)
+        return result
+    return invoker
+
 
 def url_tracker(method: Callable) -> Callable:
     '''Tracks how many times a URL was accessed.
@@ -20,27 +62,9 @@ def url_tracker(method: Callable) -> Callable:
     return invoker
 
 
-def data_cacher(expires=10):
-    '''Caches the output of fetched data with expiration time.
-    '''
-    def cache_decorator(method):
-        @wraps(method)
-        def invoker(url) -> str:
-            '''The wrapper function for caching the output.
-            '''
-            result = redis_store.get(f'result:{url}')
-            if result:
-                return result.decode('utf-8')
-            result = method(url)
-            redis_store.setex(f'result:{url}', expires, result)
-            return result
-        return invoker
-    return cache_decorator
-
-
 @url_tracker
-@data_cacher(expires=10)
-def get_page(url: str) -> str:
+@data_cacher
+def get_page_decorated(url: str) -> str:
     '''Returns the content of a URL after caching the request's response,
     and tracking the request.
     '''
